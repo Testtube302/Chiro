@@ -282,13 +282,14 @@
             let currentDate = new Date(startDate);
             let id = Date.now();
             
-            while (currentDate <= endDate) {
+            while (currentDate.getTime() <= endDate.getTime()) {
                 const dayOfWeek = currentDate.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu
+                const dateStr = currentDate.toISOString().split('T')[0];
                 
                 if (dayOfWeek === 2) { // Tuesday
                     schedule.push({
                         id: id++,
-                        date: currentDate.toISOString().split('T')[0],
+                        date: dateStr,
                         time: '9:30 AM',
                         status: 'scheduled',
                         createdAt: new Date().toISOString()
@@ -296,7 +297,7 @@
                 } else if (dayOfWeek === 3) { // Wednesday
                     schedule.push({
                         id: id++,
-                        date: currentDate.toISOString().split('T')[0],
+                        date: dateStr,
                         time: '3:00 PM',
                         status: 'scheduled',
                         createdAt: new Date().toISOString()
@@ -304,12 +305,15 @@
                 } else if (dayOfWeek === 4) { // Thursday
                     schedule.push({
                         id: id++,
-                        date: currentDate.toISOString().split('T')[0],
+                        date: dateStr,
                         time: '9:30 AM',
                         status: 'scheduled',
                         createdAt: new Date().toISOString()
                     });
                 }
+                
+                // Stop if we've reached March 24, 2026
+                if (dateStr === '2026-03-24') break;
                 
                 currentDate.setDate(currentDate.getDate() + 1);
             }
