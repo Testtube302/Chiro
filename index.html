@@ -271,22 +271,36 @@
     <script>
         // Data storage
         let appointments = JSON.parse(localStorage.getItem('chiroAppointments') || '[]');
-        const TOTAL_PREPAID_APPOINTMENTS = 36; // 3 months × 3/week × 4 weeks
+        let TOTAL_PREPAID_APPOINTMENTS = 0;
 
-        // Generate Naida's schedule: Tue 9:30am, Wed 3:00pm, Thu 9:30am until March 24, 2026
+        function parseISODateLocal(dateStr) {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        }
+
+        function formatDateLocal(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Generate schedule: first Tue Feb 24 at 9:30 AM, then Wed/Thu entries, ending Tue Mar 24 at 9:30 AM.
         function generateSchedule() {
             const schedule = [];
-            const startDate = new Date('2025-02-25'); // Start from Tuesday Feb 25
-            const endDate = new Date('2026-03-24');   // End on March 24
+            const startDate = new Date(2026, 1, 24);
+            const endDate = new Date(2026, 2, 24);
+            const startDateStr = '2026-02-24';
+            const endDateStr = '2026-03-24';
             
             let currentDate = new Date(startDate);
             let id = Date.now();
             
             while (currentDate.getTime() <= endDate.getTime()) {
                 const dayOfWeek = currentDate.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu
-                const dateStr = currentDate.toISOString().split('T')[0];
+                const dateStr = formatDateLocal(currentDate);
                 
-                if (dayOfWeek === 2) { // Tuesday
+                if (dateStr === startDateStr || dateStr === endDateStr) { // First and last Tuesday
                     schedule.push({
                         id: id++,
                         date: dateStr,
@@ -312,8 +326,7 @@
                     });
                 }
                 
-                // Stop if we've reached March 24, 2026
-                if (dateStr === '2026-03-24') break;
+                if (dateStr === endDateStr) break;
                 
                 currentDate.setDate(currentDate.getDate() + 1);
             }
@@ -323,6 +336,7 @@
 
         // Initialize with Naida's schedule (clear any existing)
         appointments = generateSchedule();
+        TOTAL_PREPAID_APPOINTMENTS = appointments.length;
         saveData();
 
         function saveData() {
@@ -368,7 +382,7 @@
             }
 
             // Sort by date
-            filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+            filtered.sort((a, b) => parseISODateLocal(a.date) - parseISODateLocal(b.date));
 
             if (filtered.length === 0) {
                 list.innerHTML = '<div class="empty-state">No appointments found</div>';
@@ -376,10 +390,12 @@
             }
 
             list.innerHTML = filtered.map(appt => {
-                const date = new Date(appt.date);
+                const date = parseISODateLocal(appt.date);
                 const day = date.getDate();
                 const month = date.toLocaleDateString('en-US', { month: 'short' });
-                const isPast = date < new Date().setHours(0,0,0,0);
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+                const isPast = date < todayStart;
                 
                 let actions = '';
                 if (appt.status === 'scheduled') {
