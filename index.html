@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Naida's Chiropractic Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #2c5282;
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 0.875rem;
+            margin-bottom: 20px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-card.owed {
+            background: #fed7d7;
+            border: 2px solid #fc8181;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2c5282;
+        }
+        .stat-card.owed .stat-number {
+            color: #c53030;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 4px;
+        }
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #333;
+        }
+        .appointment {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            gap: 12px;
+        }
+        .appointment:last-child {
+            border-bottom: none;
+        }
+        .date-box {
+            background: #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 60px;
+        }
+        .date-day {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #2c5282;
+        }
+        .date-month {
+            font-size: 0.75rem;
+            color: #666;
+        }
+        .appt-info {
+            flex: 1;
+        }
+        .appt-status {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .status-scheduled { color: #3182ce; }
+        .status-completed { color: #38a169; }
+        .status-missed { color: #dd6b20; }
+        .status-owed { color: #c53030; font-weight: bold; }
+        .appt-actions {
+            display: flex;
+            gap: 8px;
+        }
+        button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        button:hover {
+            opacity: 0.8;
+        }
+        .btn-complete {
+            background: #48bb78;
+            color: white;
+        }
+        .btn-missed {
+            background: #ed8936;
+            color: white;
+        }
+        .btn-undo {
+            background: #a0aec0;
+            color: white;
+        }
+        .add-form {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        input, select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        input[type="date"] {
+            flex: 1;
+            min-width: 140px;
+        }
+        select {
+            min-width: 120px;
+        }
+        .btn-add {
+            background: #2c5282;
+            color: white;
+            padding: 10px 20px;
+            font-size: 1rem;
+        }
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            overflow-x: auto;
+        }
+        .filter-tab {
+            padding: 8px 16px;
+            background: #e2e8f0;
+            border: none;
+            border-radius: 20px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .filter-tab.active {
+            background: #2c5282;
+            color: white;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        .owed-banner {
+            background: #c53030;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            text-align: center;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <h1>🦴 Naida's Chiropractic Tracker</h1>
+    <p class="subtitle">3 months prepaid • 3x per week</p>
+
+    <div id="owedBanner"></div>
+
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-number" id="totalPaid">0</div>
+            <div class="stat-label">Total Paid</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="completed">0</div>
+            <div class="stat-label">Completed</div>
+        </div>
+        <div class="stat-card owed">
+            <div class="stat-number" id="owed">0</div>
+            <div class="stat-label">Owed by Dr</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">Add Appointment</h2>
+        <form class="add-form" id="addForm">
+            <input type="date" id="apptDate" required>
+            <select id="apptTime">
+                <option value="9:00 AM">9:00 AM</option>
+                <option value="10:00 AM">10:00 AM</option>
+                <option value="11:00 AM">11:00 AM</option>
+                <option value="2:00 PM">2:00 PM</option>
+                <option value="3:00 PM">3:00 PM</option>
+                <option value="4:00 PM">4:00 PM</option>
+            </select>
+            <button type="submit" class="btn-add">Add</button>
+        </form>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">Appointments</h2>
+        <div class="filter-tabs">
+            <button class="filter-tab active" data-filter="all">All</button>
+            <button class="filter-tab" data-filter="scheduled">Scheduled</button>
+            <button class="filter-tab" data-filter="completed">Completed</button>
+            <button class="filter-tab" data-filter="missed">Missed</button>
+            <button class="filter-tab" data-filter="owed">Owed</button>
+        </div>
+        <div id="appointmentsList"></div>
+    </div>
+
+    <script>
+        // Data storage
+        let appointments = JSON.parse(localStorage.getItem('chiroAppointments') || '[]');
+        const TOTAL_PREPAID_APPOINTMENTS = 36; // 3 months × 3/week × 4 weeks
+
+        // Initialize with sample data if empty
+        if (appointments.length === 0) {
+            const today = new Date();
+            for (let i = 0; i < 12; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() + (i * 2));
+                appointments.push({
+                    id: Date.now() + i,
+                    date: date.toISOString().split('T')[0],
+                    time: '10:00 AM',
+                    status: 'scheduled',
+                    createdAt: new Date().toISOString()
+                });
+            }
+            saveData();
+        }
+
+        function saveData() {
+            localStorage.setItem('chiroAppointments', JSON.stringify(appointments));
+            render();
+        }
+
+        function getStatusCounts() {
+            const completed = appointments.filter(a => a.status === 'completed').length;
+            const owed = appointments.filter(a => a.status === 'owed').length;
+            return {
+                totalPaid: TOTAL_PREPAID_APPOINTMENTS,
+                completed,
+                owed,
+                remaining: TOTAL_PREPAID_APPOINTMENTS - completed - owed
+            };
+        }
+
+        function render() {
+            const counts = getStatusCounts();
+            document.getElementById('totalPaid').textContent = counts.totalPaid;
+            document.getElementById('completed').textContent = counts.completed;
+            document.getElementById('owed').textContent = counts.owed;
+
+            // Show owed banner if there are owed appointments
+            const owedBanner = document.getElementById('owedBanner');
+            if (counts.owed > 0) {
+                owedBanner.innerHTML = `<div class="owed-banner">⚠️ Dr owes Naida ${counts.owed} appointment${counts.owed > 1 ? 's' : ''}</div>`;
+            } else {
+                owedBanner.innerHTML = '';
+            }
+
+            renderAppointments();
+        }
+
+        function renderAppointments() {
+            const filter = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
+            const list = document.getElementById('appointmentsList');
+            
+            let filtered = appointments;
+            if (filter !== 'all') {
+                filtered = appointments.filter(a => a.status === filter);
+            }
+
+            // Sort by date
+            filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="empty-state">No appointments found</div>';
+                return;
+            }
+
+            list.innerHTML = filtered.map(appt => {
+                const date = new Date(appt.date);
+                const day = date.getDate();
+                const month = date.toLocaleDateString('en-US', { month: 'short' });
+                const isPast = date < new Date().setHours(0,0,0,0);
+                
+                let actions = '';
+                if (appt.status === 'scheduled') {
+                    actions = `
+                        <button class="btn-complete" onclick="markStatus(${appt.id}, 'completed')">✓ Done</button>
+                        <button class="btn-missed" onclick="markStatus(${appt.id}, 'owed')">Dr Cancel</button>
+                    `;
+                } else {
+                    actions = `<button class="btn-undo" onclick="markStatus(${appt.id}, 'scheduled')">Undo</button>`;
+                }
+
+                return `
+                    <div class="appointment">
+                        <div class="date-box">
+                            <div class="date-day">${day}</div>
+                            <div class="date-month">${month}</div>
+                        </div>
+                        <div class="appt-info">
+                            <div class="appt-status status-${appt.status}">
+                                ${appt.status === 'scheduled' ? '📅 Scheduled' : 
+                                  appt.status === 'completed' ? '✅ Completed' :
+                                  appt.status === 'missed' ? '❌ Missed' :
+                                  appt.status === 'owed' ? '💰 Owed by Dr' : appt.status}
+                            </div>
+                            <div style="font-size: 0.875rem; color: #666;">${appt.time}</div>
+                        </div>
+                        <div class="appt-actions">
+                            ${actions}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function markStatus(id, status) {
+            const appt = appointments.find(a => a.id === id);
+            if (appt) {
+                appt.status = status;
+                saveData();
+            }
+        }
+
+        // Add appointment
+        document.getElementById('addForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const date = document.getElementById('apptDate').value;
+            const time = document.getElementById('apptTime').value;
+            
+            appointments.push({
+                id: Date.now(),
+                date,
+                time,
+                status: 'scheduled',
+                createdAt: new Date().toISOString()
+            });
+            
+            saveData();
+            e.target.reset();
+        });
+
+        // Filter tabs
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                renderAppointments();
+            });
+        });
+
+        // Initial render
+        render();
+
+        // Register service worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(console.error);
+        }
+    </script>
+</body>
+</html>
